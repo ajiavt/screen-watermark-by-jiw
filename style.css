@@ -1,61 +1,124 @@
-body, html {
+html, body {
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden; /* Important for transparent window */
   background-color: transparent; /* Crucial for the overlay effect */
-  font-family: sans-serif;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+:root {
+  --ui-bg: rgba(20, 20, 24, 0.55);
+  --ui-border: rgba(255, 255, 255, 0.14);
+  --ui-fg: rgba(255, 255, 255, 0.92);
+  --ui-fg-muted: rgba(255, 255, 255, 0.72);
+  --ui-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --ui-radius: 12px;
 }
 
 #app-container {
   width: 100%;
   height: 100%;
   display: flex;
-  flex-direction: column; /* Stack controls on top of image */
-  justify-content: center; /* Center image if it's smaller than container */
-  align-items: center;   /* Center image if it's smaller than container */
+  justify-content: center;
+  align-items: center;
   position: relative; /* For positioning controls and resize handle */
   -webkit-app-region: drag; /* Allows dragging the whole window */
   user-select: none; /* Prevent text selection on the app */
 }
 
-#watermark-controls {
+#app-container:focus-visible {
+  outline: 2px solid rgba(110, 168, 255, 0.75);
+  outline-offset: -2px;
+  border-radius: 10px;
+}
+
+.toolbar {
   position: absolute;
-  top: 0px;
-  right: 0px;
-  padding: 5px;
-  background-color: rgba(0, 0, 0, 0.1); /* Slight background for visibility */
-  border-radius: 0 0 0 5px;
+  top: 10px;
+  right: 10px;
+  padding: 8px 10px;
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
   display: flex;
-  gap: 5px;
+  gap: 10px;
+  align-items: center;
   z-index: 100;
   -webkit-app-region: no-drag; /* Elements inside controls should not drag window */
   opacity: 0; /* Initially hidden */
   transition: opacity 0.3s ease-in-out;
+  box-shadow: var(--ui-shadow);
+  backdrop-filter: blur(12px);
 }
 
-#app-container:hover #watermark-controls {
+.toolbar:hover {
+  opacity: 1;
+}
+
+#app-container:hover .toolbar,
+#app-container:focus-within .toolbar,
+#app-container.no-image .toolbar {
   opacity: 1; /* Show controls on hover */
 }
 
-#watermark-controls button {
-  background-color: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(0,0,0,0.2);
-  color: #333;
-  padding: 3px 6px;
+.icon-btn {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--ui-fg);
+  padding: 6px 8px;
   cursor: pointer;
-  border-radius: 3px;
-  font-size: 12px;
+  border-radius: 10px;
+  font-size: 13px;
   line-height: 1;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
 }
 
-#watermark-controls button:hover {
-  background-color: rgba(255, 255, 255, 0.9);
+.icon-btn:active {
+  transform: translateY(1px);
 }
 
-#watermark-controls input[type="range"] {
-  width: 80px;
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid rgba(110, 168, 255, 0.9);
+  outline-offset: 2px;
+}
+
+.icon-btn.danger:hover {
+  background: rgba(255, 86, 86, 0.22);
+  border-color: rgba(255, 86, 86, 0.35);
+}
+
+.opacity {
+  display: grid;
+  grid-template-columns: auto 88px auto;
+  gap: 8px;
+  align-items: center;
+  color: var(--ui-fg);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.opacity-label {
+  color: var(--ui-fg-muted);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.opacity-value {
+  color: var(--ui-fg-muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 40px;
+  text-align: right;
+}
+
+#opacity-slider {
+  width: 88px;
   cursor: pointer;
   height: 10px;
   align-self: center;
@@ -67,12 +130,15 @@ body, html {
   object-fit: contain; /* Ensure the image fits within the bounds and maintains aspect ratio */
   display: block; /* Remove extra space below image */
   pointer-events: none; /* Image itself should not capture mouse events meant for dragging/resizing */
+  filter: drop-shadow(0 10px 25px rgba(0,0,0,0.18));
 }
 
 #resize-handle {
   width: 15px;
   height: 15px;
-  background-color: rgba(0, 0, 0, 0.2); /* Subtle handle */
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.0) 0%, rgba(255,255,255,0.0) 45%, rgba(255,255,255,0.35) 46%, rgba(255,255,255,0.35) 54%, rgba(255,255,255,0.0) 55%),
+    linear-gradient(135deg, rgba(255,255,255,0.0) 0%, rgba(255,255,255,0.0) 60%, rgba(255,255,255,0.22) 61%, rgba(255,255,255,0.22) 69%, rgba(255,255,255,0.0) 70%);
   position: absolute;
   right: 0;
   bottom: 0;
@@ -83,7 +149,9 @@ body, html {
   transition: opacity 0.3s ease-in-out;
 }
 
-#app-container:hover #resize-handle {
+#app-container:hover #resize-handle,
+#app-container:focus-within #resize-handle,
+#app-container.no-image #resize-handle {
   opacity: 1; /* Show resize handle on hover */
 }
 
@@ -97,13 +165,54 @@ body, html {
   display: none;
 }
 
-#app-container.no-image::before {
-  content: "Click 🖼️ to select image";
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 14px;
-  text-align: center;
+.empty-state {
+  display: none;
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  place-items: center;
+  text-align: center;
+  color: var(--ui-fg);
+  padding: 20px;
+  pointer-events: none;
+}
+
+#app-container.no-image .empty-state {
+  display: grid;
+}
+
+.empty-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.empty-subtitle {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ui-fg-muted);
+}
+
+.locked-badge {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+#app-container.locked .locked-badge {
+  opacity: 1;
+}
+
+#app-container.locked .toolbar,
+#app-container.locked #resize-handle {
+  opacity: 0;
+  pointer-events: none;
 }

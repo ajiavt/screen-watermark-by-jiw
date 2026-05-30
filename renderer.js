@@ -5,6 +5,8 @@ const opacitySlider = document.getElementById('opacity-slider');
 const closeBtn = document.getElementById('close-btn');
 const resizeHandle = document.getElementById('resize-handle');
 const lockBtn = document.getElementById('lock-btn');
+const opacityValue = document.getElementById('opacity-value');
+const lockedBadge = document.getElementById('locked-badge');
 
 const state = {
   imagePath: null,
@@ -33,6 +35,7 @@ function setLockedUi(locked) {
   if (appContainer) appContainer.classList.toggle('locked', locked);
   if (lockBtn) lockBtn.setAttribute('aria-pressed', locked ? 'true' : 'false');
   if (lockBtn) lockBtn.textContent = locked ? '🔒' : '🔓';
+  if (lockedBadge) lockedBadge.setAttribute('aria-hidden', locked ? 'false' : 'true');
 }
 
 function setImageFromPath(imagePath) {
@@ -50,6 +53,7 @@ function setOpacityUi(opacity) {
   state.opacity = opacity;
   watermarkImage.style.opacity = String(opacity);
   if (opacitySlider) opacitySlider.value = String(opacity);
+  if (opacityValue) opacityValue.textContent = `${Math.round(opacity * 100)}%`;
 }
 
 // Load last used state on startup
