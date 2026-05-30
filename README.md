@@ -27,7 +27,7 @@ The Screen Watermark Application is a cross-platform desktop application (macOS 
 
 Before you can run or build this application from the source code, you need to have the following software installed:
 
--   **Node.js and npm**: Electron and its dependencies are managed via npm (Node Package Manager), which is included with Node.js. You can download Node.js from [https://nodejs.org/](https://nodejs.org/).
+-   **Node.js and npm**: Recommended **Node.js 20 LTS** (see `.nvmrc`). Electron and its dependencies are managed via npm (Node Package Manager), which is included with Node.js. You can download Node.js from [https://nodejs.org/](https://nodejs.org/).
 -   **Git**: (Optional, if you are cloning the repository) You can download Git from [https://git-scm.com/](https://git-scm.com/).
 
 ## Installation and Running from Source
@@ -45,30 +45,31 @@ Before you can run or build this application from the source code, you need to h
     npm install
     ```
 
-3.  **Run the Application in Development Mode:**
+3.  **Run the Application (Development Mode):**
     Once the dependencies are installed, you can run the application with the command:
     ```bash
-    npm start
+    npm run dev
     ```
     This will launch the watermark application.
 
 ## Building the Application (Creating Executables)
 
-The application uses `@electron/packager` to create distributable executable files for macOS and Windows.
+The application uses `@electron/packager` to create distributable executable files.
 
-1.  **For macOS (from macOS):**
+1.  **Package for your current OS:**
     Run the following command in your terminal:
     ```bash
-    npm run package-mac
+    npm run package
     ```
-    This will create the application in `.app` format inside the `release-builds/screen-watermark-darwin-x64/` directory.
+    This will create the application inside the `release-builds/` directory.
 
-2.  **For Windows (from macOS or Windows):**
+2.  **Package for a specific OS:**
     Run the following command in your terminal:
     ```bash
-    npm run package-win
+    npm run package:mac   # macOS (x64)
+    npm run package:win   # Windows (x64)
+    npm run package:linux # Linux (x64)
     ```
-    This will create the application in `.exe` format along with its supporting files inside the `release-builds/screen-watermark-win32-ia32/` (for 32-bit architecture) or `release-builds/screen-watermark-win32-x64/` (if configured for 64-bit).
 
     *Note for building Windows from macOS/Linux*: `@electron/packager` may require Wine to package some Windows resources. If you encounter issues, ensure Wine (specifically `wine64`) is installed and configured correctly on your system.
 
@@ -89,17 +90,19 @@ Here is an overview of the main files and directories in this project:
 ## How to Use the Application
 
 1.  **Run the Application**:
-    -   If running from source: `npm start`.
+    -   If running from source: `npm run dev` (or `npm start`).
     -   If you have the executable: Run the `.app` (macOS) or `.exe` (Windows) file.
 
 2.  **Select Watermark Image**:
     -   When the application is first run or if no image is saved, you will be prompted to select an image file.
     -   Click the "Select Image" button to open the file dialog and choose the image you want to use as the watermark.
+    -   You can also drag & drop an image file directly onto the watermark window.
 
 3.  **Adjust the Watermark**:
     -   **Move**: Click and drag the watermark image to move it to your desired position on the screen.
     -   **Resize**: Click and drag the resize handle (usually in the bottom-right corner of the watermark) to change its size.
     -   **Adjust Opacity**: Use the opacity slider to control the transparency of the watermark.
+    -   **Lock (click-through)**: Press `Ctrl/⌘ + Shift + L` to lock/unlock the watermark so it can become click-through.
 
 4.  **Close the Watermark**:
     -   Click the 'x' button (usually in the top-right corner of the watermark) to close the application.
@@ -113,4 +116,3 @@ If you would like to contribute to this project, please fork the repository and 
 ## License
 
 This project is licensed under the MIT License. Copyright (c) 2025 Aji Rama Wangsa.
-

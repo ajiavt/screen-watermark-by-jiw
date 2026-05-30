@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, globalShortcut } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
 
@@ -7,7 +7,9 @@ const store = new Store();
 let mainWindow;
 
 function createWindow() {
-  const savedBounds = store.get('windowBounds') || { width: 200, height: 200, x: undefined, y: undefined };
+  const savedBounds = store.get('windowBounds') || { width: 260, height: 200, x: undefined, y: undefined };
+  const savedOpacity = store.get('watermarkOpacity', 1);
+  const savedLocked = store.get('watermarkLocked', false);
 
   mainWindow = new BrowserWindow({
     width: savedBounds.width,
@@ -17,7 +19,9 @@ function createWindow() {
     frame: false,
     transparent: true,
     alwaysOnTop: true,
-    resizable: true, // We'll handle custom resizing
+    resizable: true,
+    minWidth: 140,
+    minHeight: 90,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -28,17 +32,24 @@ function createWindow() {
 
   mainWindow.loadFile('index.html');
 
-  // Make window draggable (basic implementation)
-  // More sophisticated dragging will be in renderer.js
-  mainWindow.on('moved', () => {
-    const bounds = mainWindow.getBounds();
-    store.set('windowBounds', bounds);
-  });
+  mainWindow.setOpacity(savedOpacity);
+  mainWindow.setIgnoreMouseEvents(Boolean(savedLocked), { forward: true });
 
-  mainWindow.on('resized', () => {
-    const bounds = mainWindow.getBounds();
-    store.set('windowBounds', bounds);
-  });
+  let boundsSaveTimer;
+  const scheduleSaveBounds = () => {
+    if (!mainWindow) return;
+    clearTimeout(boundsSaveTimer);
+    boundsSaveTimer = setTimeout(() => {
+      if (!mainWindow) return;
+      store.set('windowBounds', mainWindow.getBounds());
+    }, 250);
+  };
+
+  // Electron versions differ on whether they emit move/moved and resize/resized.
+  // Listen to both to ensure persistence works across versions.
+  for (const eventName of ['move', 'moved', 'resize', 'resized']) {
+    mainWindow.on(eventName, scheduleSaveBounds);
+  }
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -50,6 +61,17 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
+
+  const toggleLocked = () => {
+    const nextLocked = !store.get('watermarkLocked', false);
+    store.set('watermarkLocked', nextLocked);
+    if (mainWindow) {
+      mainWindow.setIgnoreMouseEvents(nextLocked, { forward: true });
+      mainWindow.webContents.send('locked-changed', nextLocked);
+    }
+  };
+
+  globalShortcut.register('CommandOrControl+Shift+L', toggleLocked);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -80,19 +102,64 @@ ipcMain.handle('get-last-image', () => {
   return store.get('watermarkImagePath');
 });
 
+ipcMain.handle('set-image-path', (_event, imagePath) => {
+  if (typeof imagePath === 'string' && imagePath.length > 0) {
+    store.set('watermarkImagePath', imagePath);
+    return imagePath;
+  }
+  return store.get('watermarkImagePath');
+});
+
 ipcMain.on('close-app', () => {
   app.quit();
 });
 
 ipcMain.on('set-opacity', (event, opacity) => {
   if (mainWindow) {
-    mainWindow.setOpacity(parseFloat(opacity));
-    store.set('watermarkOpacity', parseFloat(opacity));
+    const nextOpacity = Number(opacity);
+    if (!Number.isFinite(nextOpacity)) return;
+    const clamped = Math.min(1, Math.max(0.05, nextOpacity));
+    mainWindow.setOpacity(clamped);
+    store.set('watermarkOpacity', clamped);
   }
 });
 
 ipcMain.handle('get-last-opacity', () => {
   return store.get('watermarkOpacity', 1); // Default to 1 (fully opaque)
+});
+
+ipcMain.handle('get-app-state', () => {
+  return {
+    imagePath: store.get('watermarkImagePath', null),
+    opacity: store.get('watermarkOpacity', 1),
+    locked: store.get('watermarkLocked', false),
+    windowBounds: mainWindow ? mainWindow.getBounds() : store.get('windowBounds', null),
+  };
+});
+
+ipcMain.handle('get-window-bounds', () => {
+  return mainWindow ? mainWindow.getBounds() : store.get('windowBounds', null);
+});
+
+ipcMain.on('set-locked', (_event, locked) => {
+  const nextLocked = Boolean(locked);
+  store.set('watermarkLocked', nextLocked);
+  if (mainWindow) {
+    mainWindow.setIgnoreMouseEvents(nextLocked, { forward: true });
+    mainWindow.webContents.send('locked-changed', nextLocked);
+  }
+});
+
+ipcMain.on('resize-window', (_event, width, height) => {
+  if (!mainWindow) return;
+  const nextWidth = Math.round(Number(width));
+  const nextHeight = Math.round(Number(height));
+  if (!Number.isFinite(nextWidth) || !Number.isFinite(nextHeight)) return;
+  mainWindow.setSize(
+    Math.max(nextWidth, 140),
+    Math.max(nextHeight, 90),
+    true
+  );
 });
 
 // Allow the window to be shown/hidden if needed later
@@ -102,4 +169,8 @@ ipcMain.handle('get-last-opacity', () => {
 // Ensure the app quits when explicitly told to, even on macOS
 app.on('before-quit', () => {
   // You might want to save any final state here
+});
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
 });
